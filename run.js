@@ -27,7 +27,7 @@ const pick = agents[Math.floor(Math.random() * agents.length)];
 
   fs.appendFileSync('access.log', 'IP: ' + ip + '\nUA: ' + pick.ua + '\n----\n');
 
-  await page.goto('https://ssplay.net/loading.html', { waitUntil: 'networkidle', timeout: 60000 });
+  await page.goto('https://www.hhtm.cc/xem-phim/the-gioi-hoan-my/tap-250', { waitUntil: 'networkidle', timeout: 60000 });
 
   await page.evaluate(async () => {
     for (let i = 0; i < 8; i++) {
