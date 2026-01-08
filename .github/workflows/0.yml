@@ -2,14 +2,12 @@ name: View Website Random Agent
 
 on:
   workflow_dispatch:
-  # schedule:
-  #   - cron: "0 * * * *"
 
 jobs:
   view:
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # QUAN TRỌNG: để push ảnh lên repo
+      contents: write
 
     steps:
       - name: Checkout repo
@@ -26,9 +24,9 @@ jobs:
           npm install playwright
           npx playwright install --with-deps chromium
 
-      - name: Run browser (random UA, device, viewport)
+      - name: Create script
         run: |
-          node <<'EOF'
+          cat > run.js << 'EOF'
           const { chromium } = require('playwright');
           const fs = require('fs');
 
@@ -56,7 +54,6 @@ jobs:
             const context = await browser.newContext({
               userAgent: pick.ua,
               viewport: { width: pick.width, height: pick.height },
-              deviceScaleFactor: 1,
               isMobile: pick.mobile || false,
               locale: 'vi-VN',
               timezoneId: pick.tz,
@@ -69,7 +66,6 @@ jobs:
             await page.goto('https://api.ipify.org?format=json');
             const ipInfo = await page.evaluate(() => JSON.parse(document.body.innerText));
 
-            // Ghi log
             const log = `
 TIME: ${new Date().toISOString()}
 IP: ${ipInfo.ip}
@@ -81,12 +77,12 @@ TIMEZONE: ${pick.tz}
             fs.appendFileSync('access.log', log);
 
             // Truy cập website chính
-            await page.goto('https://YOUR-WEBSITE-HERE', {
+            await page.goto('https://ssplay.net/loading.html', {
               waitUntil: 'networkidle',
               timeout: 60000
             });
 
-            // Scroll để trigger lazy-load / ads
+            // Scroll trigger lazy-load / ads
             await page.evaluate(async () => {
               for (let i = 0; i < 10; i++) {
                 window.scrollBy(0, window.innerHeight);
@@ -99,15 +95,17 @@ TIMEZONE: ${pick.tz}
             const fileName = `screenshot-${Date.now()}.png`;
             await page.screenshot({ path: fileName, fullPage: true });
 
-            fs.writeFileSync('latest.txt', `
-IP: ${ipInfo.ip}
-UA: ${pick.ua}
-SCREENSHOT: ${fileName}
-`);
+            fs.writeFileSync(
+              'latest.txt',
+              `IP: ${ipInfo.ip}\nUA: ${pick.ua}\nSCREENSHOT: ${fileName}\n`
+            );
 
             await browser.close();
           })();
           EOF
+
+      - name: Run script
+        run: node run.js
 
       - name: Commit & push result
         run: |
