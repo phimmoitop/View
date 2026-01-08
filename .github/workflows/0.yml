@@ -54,7 +54,7 @@ jobs:
           "  await page.goto('https://api.ipify.org?format=json');" \
           "  const ip = await page.evaluate(() => JSON.parse(document.body.innerText).ip);" \
           "" \
-          "  fs.appendFileSync('access.log', `IP: ${ip}\\nUA: ${pick.ua}\\n----\\n`);" \
+          "  fs.appendFileSync('access.log', 'IP: ' + ip + '\\nUA: ' + pick.ua + '\\n----\\n');" \
           "" \
           "  await page.goto('https://ssplay.net/loading.html', { waitUntil: 'networkidle', timeout: 60000 });" \
           "" \
@@ -65,14 +65,15 @@ jobs:
           "    }" \
           "  });" \
           "" \
-          "  const file = `screenshot-${Date.now()}.png`;" \
+          "  const file = 'screenshot-' + Date.now() + '.png';" \
           "  await page.screenshot({ path: file, fullPage: true });" \
           "" \
-          "  fs.writeFileSync('latest.txt', `IP: ${ip}\\nUA: ${pick.ua}\\nSCREEN: ${file}`);" \
+          "  fs.writeFileSync('latest.txt', 'IP: ' + ip + '\\nUA: ' + pick.ua + '\\nSCREEN: ' + file);" \
           "" \
           "  await browser.close();" \
           "})();" \
           > run.js
+
 
       - name: Run script
         run: node run.js
