@@ -56,7 +56,7 @@ jobs:
           "" \
           "  fs.appendFileSync('access.log', `IP: ${ip}\\nUA: ${pick.ua}\\n----\\n`);" \
           "" \
-          "  await page.goto('https://YOUR-WEBSITE-HERE', { waitUntil: 'networkidle', timeout: 60000 });" \
+          "  await page.goto('https://ssplay.net/loading.html', { waitUntil: 'networkidle', timeout: 60000 });" \
           "" \
           "  await page.evaluate(async () => {" \
           "    for (let i = 0; i < 8; i++) {" \
