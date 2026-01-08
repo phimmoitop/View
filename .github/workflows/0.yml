@@ -1,0 +1,118 @@
+name: View Website Random Agent
+
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: "0 * * * *"
+
+jobs:
+  view:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # QUAN TRỌNG: để push ảnh lên repo
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Playwright
+        run: |
+          npm init -y
+          npm install playwright
+          npx playwright install --with-deps chromium
+
+      - name: Run browser (random UA, device, viewport)
+        run: |
+          node <<'EOF'
+          const { chromium } = require('playwright');
+          const fs = require('fs');
+
+          const userAgents = [
+            { ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', width: 1366, height: 768, tz: 'Asia/Ho_Chi_Minh' },
+            { ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15', width: 1440, height: 900, tz: 'Asia/Tokyo' },
+            { ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1', width: 390, height: 844, tz: 'Asia/Ho_Chi_Minh', mobile: true },
+            { ua: 'Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36', width: 412, height: 915, tz: 'Asia/Bangkok', mobile: true },
+            { ua: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', width: 1920, height: 1080, tz: 'Europe/Berlin' }
+          ];
+
+          const pick = userAgents[Math.floor(Math.random() * userAgents.length)];
+
+          (async () => {
+            const browser = await chromium.launch({
+              headless: true,
+              args: [
+                '--no-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-blink-features=AutomationControlled',
+                '--autoplay-policy=no-user-gesture-required'
+              ]
+            });
+
+            const context = await browser.newContext({
+              userAgent: pick.ua,
+              viewport: { width: pick.width, height: pick.height },
+              deviceScaleFactor: 1,
+              isMobile: pick.mobile || false,
+              locale: 'vi-VN',
+              timezoneId: pick.tz,
+              javaScriptEnabled: true
+            });
+
+            const page = await context.newPage();
+
+            // Lấy IP public
+            await page.goto('https://api.ipify.org?format=json');
+            const ipInfo = await page.evaluate(() => JSON.parse(document.body.innerText));
+
+            // Ghi log
+            const log = `
+TIME: ${new Date().toISOString()}
+IP: ${ipInfo.ip}
+UA: ${pick.ua}
+VIEWPORT: ${pick.width}x${pick.height}
+TIMEZONE: ${pick.tz}
+------------------------
+`;
+            fs.appendFileSync('access.log', log);
+
+            // Truy cập website chính
+            await page.goto('https://YOUR-WEBSITE-HERE', {
+              waitUntil: 'networkidle',
+              timeout: 60000
+            });
+
+            // Scroll để trigger lazy-load / ads
+            await page.evaluate(async () => {
+              for (let i = 0; i < 10; i++) {
+                window.scrollBy(0, window.innerHeight);
+                await new Promise(r => setTimeout(r, 1500));
+              }
+            });
+
+            await page.waitForTimeout(8000);
+
+            const fileName = `screenshot-${Date.now()}.png`;
+            await page.screenshot({ path: fileName, fullPage: true });
+
+            fs.writeFileSync('latest.txt', `
+IP: ${ipInfo.ip}
+UA: ${pick.ua}
+SCREENSHOT: ${fileName}
+`);
+
+            await browser.close();
+          })();
+          EOF
+
+      - name: Commit & push result
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add .
+          git commit -m "view: update screenshot & log" || echo "Nothing to commit"
+          git push
