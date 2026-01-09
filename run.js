@@ -185,7 +185,7 @@ URL: ${targetUrl}
   // 5️⃣ Truy cập website
   await page.goto(targetUrl, {
     waitUntil: 'networkidle',
-    timeout: 60000
+    timeout: 120000
   });
 
   // Scroll để trigger lazy-load / ads / video
