@@ -2,8 +2,6 @@ name: View Website Random Agent
 
 on: 
   workflow_dispatch: 
-  schedule: 
-    - cron: '* * * * *'
 
 jobs:
   view:
