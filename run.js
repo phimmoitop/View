@@ -7,11 +7,15 @@ const TARGET_URLS = [
   'https://zuighe.top/pham-nhan-tu-tien/chuong-1/',
   'https://zuighe.top/linh-vu-thien-ha/chuong-1/',
   'https://zuighe.top/the-gioi-hoan-my/chuong-1/',
+  'https://zuighe.top/trong-sinh-lien-hon-voi-dinh-cap-hao-mon/chuong-1/',
+  'https://zuighe.top/man-cap-dai-lao-trong-sinh-hau/chuong-1/',
+  'https://zuighe.top/xuyen-thanh-nam-phu-trong-truyen-nguoc-luyen-co-dai/chuong-1/',
+  'https://zuighe.top/vo-goa-cua-ga-chan-lon/chuong-1/',
   'https://zuighe.top/co-vo-ngot-ngao-co-chut-bat-luong-vo-moi-bat-luong-co-chut-ngot/chuong-1/'
 ];
 
 const VIEW_TIME_PER_CHAPTER = 30 * 1000; // 30s
-const MAX_TOTAL_TIME = 60 * 60 * 1000;  // 1h
+const MAX_TOTAL_TIME = 60 * 60 * 1000 * 5;  // 1h
 
 // =========================
 // MOBILE AGENTS (RICH)
