@@ -4,16 +4,19 @@ const fs = require('fs');
 // =========================
 // CONFIG
 // =========================
-// Khai báo nhiều URL
 const TARGET_URLS = [
-  'https://www.hhtm.cc/xem-phim/cuoc-song-thuong-ngay-cua-mot-mao-hiem-gia-29-tuoi/tap-1',
-  'https://www.hhtm.cc/xem-phim/ky-nghi-cua-mot-quy-toc-lich-lam/tap-1',
-  'https://www.hhtm.cc/xem-phim/chen-thanh-cua-eris/tap-1',
-  'https://www.hhtm.cc/xem-phim/nguoi-dan-ong-vo-hinh-va-vo-sap-cuoi-cua-anh-ta/tap-1'
+  'https://zuighe.top/pham-nhan-tu-tien/chuong-1/',
+  'https://zuighe.top/linh-vu-thien-ha/chuong-1/',
+  'https://zuighe.top/the-gioi-hoan-my/chuong-1/',
+  'https://zuighe.top/co-vo-ngot-ngao-co-chut-bat-luong-vo-moi-bat-luong-co-chut-ngot/chuong-1/'
 ];
 
+const VIEW_TIME_PER_CHAPTER = 30 * 1000; // 30s
+const MAX_TOTAL_TIME = 60 * 60 * 1000;  // 1 hour
+const DEFAULT_COUNTRY = 'US';
+
 // =========================
-// AGENT PROFILES BY COUNTRY
+// PROFILES
 // =========================
 const PROFILES = {
   VN: [
@@ -116,10 +119,6 @@ const PROFILES = {
   ]
 };
 
-
-// fallback nếu geo không xác định
-const DEFAULT_COUNTRY = 'US';
-
 // =========================
 // MAIN
 // =========================
@@ -129,82 +128,83 @@ const DEFAULT_COUNTRY = 'US';
     args: ['--no-sandbox', '--disable-dev-shm-usage']
   });
 
-  // Context tạm để lấy IP + GEO
+  // ===== GET IP + GEO =====
   const tempContext = await browser.newContext();
   const tempPage = await tempContext.newPage();
 
-  // 1️⃣ Lấy IP public
   await tempPage.goto('https://api.ipify.org?format=json');
-  const ip = await tempPage.evaluate(() =>
-    JSON.parse(document.body.innerText).ip
-  );
+  const ip = await tempPage.evaluate(() => JSON.parse(document.body.innerText).ip);
 
-  // 2️⃣ Lấy GEO từ IP
   await tempPage.goto(`https://ipapi.co/${ip}/json/`);
-  const geo = await tempPage.evaluate(() =>
-    JSON.parse(document.body.innerText)
-  );
-
+  const geo = await tempPage.evaluate(() => JSON.parse(document.body.innerText));
   const country = geo.country || DEFAULT_COUNTRY;
 
   await tempContext.close();
 
-  // 3️⃣ Chọn profile theo quốc gia
+  // ===== PICK PROFILE =====
   const profiles = PROFILES[country] || PROFILES[DEFAULT_COUNTRY];
   const pick = profiles[Math.floor(Math.random() * profiles.length)];
 
-  // 4️⃣ Tạo context chính (đồng bộ IP / locale / timezone)
   const context = await browser.newContext({
     userAgent: pick.ua,
     viewport: { width: pick.w, height: pick.h },
-    isMobile: pick.m || false,
     locale: pick.locale,
-    timezoneId: pick.tz,
-    javaScriptEnabled: true
+    timezoneId: pick.tz
   });
 
   const page = await context.newPage();
 
-  // Chọn URL ngẫu nhiên
-  const targetUrl = TARGET_URLS[Math.floor(Math.random() * TARGET_URLS.length)];
+  // ===== PICK START URL =====
+  const startUrl = TARGET_URLS[Math.floor(Math.random() * TARGET_URLS.length)];
 
-  // LOG
+  const startTime = Date.now();
+
+  // ===== VISIT FIRST CHAPTER =====
+  await page.goto(startUrl, { waitUntil: 'networkidle', timeout: 120000 });
+
+  while (Date.now() - startTime < MAX_TOTAL_TIME) {
+    console.log('📖 Reading:', page.url());
+
+    // Scroll giống người đọc
+    await page.evaluate(async () => {
+      for (let i = 0; i < 6; i++) {
+        window.scrollBy(0, window.innerHeight / 2);
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    });
+
+    // Ở lại đọc
+    await page.waitForTimeout(VIEW_TIME_PER_CHAPTER);
+
+    // Tìm link chương tiếp theo
+    const nextLink = await page.evaluate(() => {
+      const el = document.querySelector('a.btn.btn-success.btn-chapter-nav');
+      return el ? el.href : null;
+    });
+
+    if (!nextLink) {
+      console.log('❌ Hết chương, dừng.');
+      break;
+    }
+
+    console.log('➡️ Next:', nextLink);
+
+    await page.goto(nextLink, {
+      waitUntil: 'networkidle',
+      timeout: 120000
+    });
+  }
+
+  // ===== SAVE LOG =====
   fs.appendFileSync(
     'access.log',
     `TIME: ${new Date().toISOString()}
 IP: ${ip}
 COUNTRY: ${country}
 UA: ${pick.ua}
-LOCALE: ${pick.locale}
-TIMEZONE: ${pick.tz}
-URL: ${targetUrl}
-------------------------
-`
-  );
-
-  // 5️⃣ Truy cập website
-  await page.goto(targetUrl, {
-    waitUntil: 'networkidle',
-    timeout: 120000
-  });
-
-  // Scroll để trigger lazy-load / ads / video
-  await page.evaluate(async () => {
-    for (let i = 0; i < 8; i++) {
-      window.scrollBy(0, window.innerHeight);
-      await new Promise(r => setTimeout(r, 1500));
-    }
-  });
-
-  // Không chụp ảnh nữa, chỉ ghi log
-  fs.writeFileSync(
-    'latest.txt',
-    `IP: ${ip}
-COUNTRY: ${country}
-UA: ${pick.ua}
-LOCALE: ${pick.locale}
-TIMEZONE: ${pick.tz}
-URL: ${targetUrl}
+LAST_URL: ${page.url()}
+DURATION: ${Math.round((Date.now() - startTime) / 1000)}s
+--------------------------
 `
   );
 
