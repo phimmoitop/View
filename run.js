@@ -10,30 +10,20 @@ const TARGET_URLS = [
   'https://zuighe.top/co-vo-ngot-ngao-co-chut-bat-luong-vo-moi-bat-luong-co-chut-ngot/chuong-1/'
 ];
 
-const VIEW_TIME_PER_CHAPTER = 30 * 1000; // 30 giây
-const MAX_TOTAL_TIME = 60 * 60 * 1000;  // 1 tiếng
+const VIEW_TIME_PER_CHAPTER = 30 * 1000;
+const MAX_TOTAL_TIME = 60 * 60 * 1000;
 const DEFAULT_COUNTRY = 'US';
 
 // =========================
 // PROFILES
 // =========================
 const PROFILES = {
-  VN: [
-    {
-      ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36',
-      w: 1366, h: 768,
-      locale: 'vi-VN',
-      tz: 'Asia/Ho_Chi_Minh'
-    }
-  ],
-  US: [
-    {
-      ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36',
-      w: 1920, h: 1080,
-      locale: 'en-US',
-      tz: 'America/New_York'
-    }
-  ]
+  US: [{
+    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36',
+    w: 1920, h: 1080,
+    locale: 'en-US',
+    tz: 'America/New_York'
+  }]
 };
 
 // =========================
@@ -47,28 +37,23 @@ const PROFILES = {
     args: ['--no-sandbox', '--disable-dev-shm-usage']
   });
 
-  // ===== GET IP + GEO =====
-  const tempContext = await browser.newContext();
-  const tempPage = await tempContext.newPage();
+  // ===== IP + GEO =====
+  const tmp = await browser.newContext();
+  const tmpPage = await tmp.newPage();
 
-  await tempPage.goto('https://api.ipify.org?format=json');
-  const ip = await tempPage.evaluate(() => JSON.parse(document.body.innerText).ip);
+  await tmpPage.goto('https://api.ipify.org?format=json');
+  const ip = await tmpPage.evaluate(() => JSON.parse(document.body.innerText).ip);
 
-  await tempPage.goto(`https://ipapi.co/${ip}/json/`);
-  const geo = await tempPage.evaluate(() => JSON.parse(document.body.innerText));
+  await tmpPage.goto(`https://ipapi.co/${ip}/json/`);
+  const geo = await tmpPage.evaluate(() => JSON.parse(document.body.innerText));
   const country = geo.country || DEFAULT_COUNTRY;
 
-  await tempContext.close();
+  await tmp.close();
 
   console.log(`🌍 IP: ${ip} | Country: ${country}`);
 
-  // ===== PICK PROFILE =====
-  const profiles = PROFILES[country] || PROFILES[DEFAULT_COUNTRY];
-  const pick = profiles[Math.floor(Math.random() * profiles.length)];
-
-  console.log(`🧭 UA: ${pick.ua}`);
-  console.log(`🕒 Timezone: ${pick.tz}`);
-  console.log(`🌐 Locale: ${pick.locale}`);
+  const profile = PROFILES[country] || PROFILES[DEFAULT_COUNTRY];
+  const pick = profile[0];
 
   const context = await browser.newContext({
     userAgent: pick.ua,
@@ -79,23 +64,19 @@ const PROFILES = {
 
   const page = await context.newPage();
 
-  // ===== PICK START URL =====
   const startUrl = TARGET_URLS[Math.floor(Math.random() * TARGET_URLS.length)];
   console.log(`📌 Start URL: ${startUrl}`);
 
   const startTime = Date.now();
+  await page.goto(startUrl, { waitUntil: 'networkidle', timeout: 120000 });
 
-  await page.goto(startUrl, {
-    waitUntil: 'networkidle',
-    timeout: 120000
-  });
-
-  let chapterCount = 1;
+  let chapter = 1;
 
   while (Date.now() - startTime < MAX_TOTAL_TIME) {
-    console.log(`📖 [${chapterCount}] Viewing: ${page.url()}`);
+    const currentUrl = page.url();
+    console.log(`📖 [${chapter}] Viewing: ${currentUrl}`);
 
-    // Scroll giống người đọc
+    // Scroll
     await page.evaluate(async () => {
       for (let i = 0; i < 5; i++) {
         window.scrollBy(0, window.innerHeight / 2);
@@ -103,32 +84,41 @@ const PROFILES = {
       }
     });
 
-    console.log('⏳ Reading for 30 seconds...');
+    console.log('⏳ Reading 30s...');
     await page.waitForTimeout(VIEW_TIME_PER_CHAPTER);
 
-    // Tìm link chương tiếp theo
-    const nextLink = await page.evaluate(() => {
-      const el = document.querySelector('a.btn.btn-success.btn-chapter-nav');
-      return el ? el.href : null;
-    });
+    // ===== FIND REAL NEXT CHAPTER LINK =====
+    const nextLink = await page.evaluate((current) => {
+      const links = Array.from(
+        document.querySelectorAll('a.btn.btn-success.btn-chapter-nav')
+      );
+
+      const valid = links
+        .map(a => a.href)
+        .filter(href =>
+          href &&
+          href.startsWith('http') &&
+          href !== current
+        );
+
+      return valid.length ? valid[0] : null;
+    }, currentUrl);
 
     if (!nextLink) {
-      console.log('🛑 No next chapter found. Stop.');
+      console.log('🛑 No valid next chapter. Stop.');
       break;
     }
 
-    console.log(`➡️ Go to next chapter: ${nextLink}`);
+    console.log(`➡️ Next chapter: ${nextLink}`);
 
     await page.goto(nextLink, {
       waitUntil: 'networkidle',
       timeout: 120000
     });
 
-    chapterCount++;
+    chapter++;
   }
 
-  const totalTime = Math.round((Date.now() - startTime) / 1000);
-  console.log(`✅ Finished. Total view time: ${totalTime}s`);
-
+  console.log(`✅ Finished after ${Math.round((Date.now() - startTime) / 1000)}s`);
   await browser.close();
 })();
