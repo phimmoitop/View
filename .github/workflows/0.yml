@@ -1,35 +1,25 @@
 name: View Website Random Agent
 
-on: 
-  workflow_dispatch: 
+on:
+  workflow_dispatch:
 
 jobs:
   view:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Install Playwright
         run: |
-          npm install --no-package-lock playwright
+          npm install playwright
           npx playwright install --with-deps chromium
 
-      - name: Run script
+      - name: Run viewer bot
         run: node run.js
-
-      - name: Commit & push result
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add .
-          git commit -m "view: update screenshot & log" || echo "Nothing to commit"
-          git push
