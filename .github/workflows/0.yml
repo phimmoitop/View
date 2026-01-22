@@ -1,9 +1,9 @@
 name: View Website Random Agent
 
 on:
-  schedule:
+  # schedule:
     # Chạy vào phút thứ 0 của mỗi giờ (VD: 1:00, 2:00,...)
-    - cron: '0 * * * *'
+    # - cron: '0 * * * *'
   workflow_dispatch: # Giữ cái này để bạn vẫn có thể bấm chạy thủ công khi cần
 
 jobs:
