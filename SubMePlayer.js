@@ -1,13 +1,5 @@
 <script type='text/javascript'>
 //<![CDATA[
-/* ════════════════════════════════════════════════════════════════
-   ARTPLAYER — chỉ xử lý phần player cho URL dạng /watch/<ID SỐ>
-   ────────────────────────────────────────────────────────────────
-   • /watch/7184331      → ID toàn số  → phát bằng ArtPlayer (mp4 Pexels)
-   • /watch/dQw4w9WgXcQ  → ID YouTube  → giữ nguyên iframe YouTube cũ
-   Script này KHÔNG sửa code cũ: nó quan sát khung #veoPlayerWrap, khi
-   router cũ vẽ xong mà ID là số thì thay nội dung bằng ArtPlayer.
-   ════════════════════════════════════════════════════════════════ */
 (function(){
   'use strict';
 
@@ -18,11 +10,6 @@
   /* Chỉ nhận ID số 1–10 chữ số (ID YouTube luôn 11 ký tự nên không bị nhầm) */
   var NUMERIC_ID = /^\d{1,10}$/;
 
-  /* Nguồn video theo ID.
-     Ưu tiên 1: SOURCES (khai báo tay, nếu muốn ép link riêng cho 1 ID).
-     Ưu tiên 2: window.GetLinkPexels(id) — gọi Pexels API, lấy toàn bộ chất lượng
-                (hàm này nằm ở script cuối file).
-     Dự phòng : mẫu link đoán theo tên file Pexels (chỉ dùng khi API lỗi). */
   var SOURCES = {};
   function templateSources(id){
     var base = 'https://videos.pexels.com/video-files/' + id + '/' + id + '-';
