@@ -1,0 +1,846 @@
+*{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{ width:100vw; height:100vh; overflow:hidden; background:#0b0c10; }
+:root{
+  --bg:#0b0c10; --surface:#14161c; --surface-2:#1b1e26; --surface-3:#22252f;
+  --border:#262a35; --text:#edeef1; --muted:#8b909c; --muted-2:#5d6270;
+  --accent:#f5a623; --accent-ink:#1a1300;
+  --live:#34d1bd; --full:#e15b5b;
+  --radius:10px;
+  --font-title:'Chakra Petch', sans-serif;
+  --font-body:'Chakra Petch', sans-serif;
+}
+#SubMeApp{
+  font-family:var(--font-body); background:var(--bg); color:var(--text);
+  -webkit-font-smoothing:antialiased; letter-spacing: -0.05em !important;
+  transition:background .15s, color .15s;
+  display:flex; flex-direction:column; overflow:hidden;
+  position:fixed; top:0; left:0;
+  width:100vw; height:100vh;
+}
+#SubMeApp *,#SubMeApp *::before,#SubMeApp *::after{ box-sizing:inherit; }
+#SubMeApp a{ color:inherit; text-decoration:none; }
+#SubMeApp button{ font-family:inherit; cursor:pointer; }
+#SubMeApp ul{ list-style:none; margin:0; padding:0; }
+#SubMeApp img{ max-width:100%; display:block; }
+/* --- Chặn long-press copy / context menu / chọn text trên toàn app --- */
+#SubMeApp{
+  -webkit-user-select:none; -moz-user-select:none; user-select:none;
+  -webkit-touch-callout:none; /* iOS: tắt menu callout khi giữ chặt */
+  -webkit-user-drag:none;     /* chặn kéo thả phần tử */
+}
+/* Cho phép select text và callout trong ô nhập liệu */
+#SubMeApp input, #SubMeApp textarea, #SubMeApp [contenteditable]{
+  -webkit-user-select:text; -moz-user-select:text; user-select:text;
+  -webkit-touch-callout:default;
+}
+
+/* ---------- Giao diện sáng (light theme) ---------- */
+#SubMeApp[data-theme="light"]{
+  --bg:white; --surface:#ffffff; --surface-2:#edeff2; --surface-3:#e2e5ea;
+  --border:#dde1e7; --text:#000000; --muted:#4a4d55; --muted-2:#6b6f78;
+  --accent:#e2900f; --accent-ink:#ffffff;
+  --live:#0e9c86; --full:#c93f3f;
+}
+#SubMeApp[data-theme="light"] .SubMe-thumb .SubMe-play{ background:rgba(255,255,255,.55); }
+#SubMeApp[data-theme="light"] .SubMe-thumb .SubMe-play svg{ color:#000000; }
+#SubMeApp[data-theme="light"] .SubMe-badge-duration{ background:rgba(20,22,28,.75); }
+
+/* ---------- Header ---------- */
+.SubMe-header{
+  position:sticky; top:0; z-index:40; flex-shrink:0;
+  display:flex; align-items:center; gap:16px;
+  height:60px; padding:0 16px;
+  background:rgba(11,12,16,.92); backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--border);
+  transition:background .15s, transform .25s ease;
+}
+@media (max-width:767px){
+  .SubMe-header{
+    position:fixed; top:0; left:0; right:0;
+    height:calc(60px + max(30px, env(safe-area-inset-top, 0px)));
+    padding-top:max(30px, env(safe-area-inset-top, 0px));
+  }
+}
+.SubMe-header.SubMe-header-hidden{ transform:translateY(-100%); }
+#SubMeApp[data-theme="light"] .SubMe-header{ background:#fff9f9eb; }
+.SubMe-icon-btn{
+  display:flex; align-items:center; justify-content:center;
+  width:40px; height:40px; border-radius:50%;
+  background:transparent; border:none; color:var(--text);
+  transition:background .15s; position:relative; flex-shrink:0;
+}
+.SubMe-icon-btn:hover{ background:var(--surface-2); }
+.SubMe-icon-btn svg{ width:20px; height:20px; }
+.SubMe-brand{ display:flex; align-items:center; gap:8px; font-family:var(--font-title); font-weight:700; font-size:25px; white-space:nowrap; }
+.SubMe-brand .SubMe-dot{ width:10px; height:10px; border-radius:50%; background:var(--accent); }
+.SubMe-search{ flex:1; display:flex; align-items:center; gap:6px; justify-content:center; position:relative; max-width:640px; margin:0 auto; }
+.SubMe-search-box{ position:relative; width:100%; }
+.SubMe-search-box input{
+  width:100%; height:40px; border-radius:20px; padding:0 44px 0 18px;
+  background:var(--surface); border:1px solid var(--border); color:var(--text);
+  font-family:var(--font-body); font-size:14px; outline:none;
+}
+.SubMe-search-box input:focus{ border-color:var(--accent); }
+.SubMe-search-box svg{ position:absolute; right:16px; top:50%; transform:translateY(-50%); width:17px; height:17px; color:var(--muted); pointer-events:none; }
+.SubMe-suggest{
+  position:absolute; top:46px; left:0; right:0;
+  background:var(--surface-2); border:1px solid var(--border); border-radius:12px;
+  padding:6px; display:none; overflow:hidden; z-index:50;
+}
+.SubMe-suggest.open{ display:block; }
+.SubMe-suggest button{
+  display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+  padding:9px 10px; border-radius:8px; background:none; border:none; color:var(--text); font-size:13.5px;
+}
+.SubMe-suggest button:hover{ background:var(--surface-3); }
+.SubMe-suggest button svg{ width:15px; height:15px; color:var(--muted-2); flex-shrink:0; }
+.SubMe-header-right{ display:flex; align-items:center; gap:4px; flex-shrink:0; }
+.SubMe-avatar{
+  width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--accent),#c9781a);
+  display:flex; align-items:center; justify-content:center; font-family:var(--font-title); font-weight:700; font-size:13px; color:var(--accent-ink);
+  margin-left:6px; border:none; overflow:hidden; padding:0;
+}
+.SubMe-avatar img{ width:100%; height:100%; object-fit:cover; }
+
+/* ---------- Nút chuyển giao diện sáng / tối ---------- */
+#veoThemeBtn .icon-moon{ display:none; }
+#veoThemeBtn .icon-sun{ display:block; }
+#SubMeApp[data-theme="light"] #veoThemeBtn .icon-sun{ display:none; }
+#SubMeApp[data-theme="light"] #veoThemeBtn .icon-moon{ display:block; }
+
+/* ---------- Nút bộ lọc trong thanh tìm kiếm ---------- */
+.SubMe-filter-btn{ position:relative; }
+.SubMe-filter-btn.has-active::after{
+  content:''; position:absolute; top:8px; right:8px; width:7px; height:7px; border-radius:50%; background:var(--accent);
+}
+
+/* ---------- Filter bar (nay dùng bên trong modal bộ lọc) ---------- */
+.SubMe-pills{ display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; }
+.SubMe-pills::-webkit-scrollbar{ display:none; }
+.SubMe-pill{
+  flex-shrink:0; padding:7px 15px; border-radius:999px; font-size:13px; font-weight:600;
+  background:var(--surface); border:1px solid var(--border); color:var(--text); white-space:nowrap;
+  font-family:var(--font-body); transition:.15s;
+}
+.SubMe-pill:hover{ background:var(--surface-2); }
+.SubMe-pill.active{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+.SubMe-selects{ display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; }
+.SubMe-selects::-webkit-scrollbar{ display:none; }
+.SubMe-select{
+  flex-shrink:0; height:34px; padding:0 30px 0 12px; border-radius:8px;
+  background:var(--surface) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%238b909c" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>') no-repeat right 8px center/14px;
+  border:1px solid var(--border); color:var(--text); font-family:var(--font-body); font-size:12.5px; font-weight:600; appearance:none;
+}
+
+/* ---------- App-shell: sidebar (trái) + nội dung (phải), 2 vùng CUỘN ĐỘC LẬP ---------- */
+.SubMe-shell{ flex:1; min-height:0; display:flex; align-items:stretch; overflow:hidden; }
+.SubMe-content{
+  flex:1; min-width:0; height:100%; overflow-y:auto; overflow-x:hidden; position:relative;
+  scrollbar-width:none; -ms-overflow-style:none;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;           /* chỉ cho phép vuốt dọc, loại bỏ delay chờ JS */
+  overscroll-behavior:contain;  /* chặn scroll chain lên body, tránh lock cuộn */
+}
+.SubMe-content::-webkit-scrollbar{ display:none; width:0; height:0; }
+@media (max-width:767px){
+  .SubMe-content{ padding-top:var(--SubMe-header-h, calc(60px + max(30px, env(safe-area-inset-top, 0px)))); }
+}
+
+.SubMe-sidebar{
+  width:84px; flex-shrink:0; height:100%; overflow-y:auto; overflow-x:hidden;
+  padding:10px 4px; border-right:1px solid var(--border);
+  transition:width .18s ease, transform .18s ease;
+  scrollbar-width:none; -ms-overflow-style:none; /* FIX: ẩn thanh cuộn sidebar */
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
+  overscroll-behavior:contain;
+}
+.SubMe-sidebar::-webkit-scrollbar{ display:none; width:0; height:0; } /* FIX */
+.SubMe-sidebar a{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:6px; padding:12px 4px; border-radius:8px;
+  font-size:10.5px; font-weight:600; color:var(--text); margin-bottom:2px; text-align:center;
+}
+.SubMe-sidebar a:hover{ background:var(--surface-2); }
+.SubMe-sidebar a.active{ background:var(--surface-3); color:var(--accent); }
+.SubMe-sidebar a svg{ width:21px; height:21px; flex-shrink:0; color:var(--muted); }
+.SubMe-sidebar a.active svg{ color:var(--accent); }
+.SubMe-sidebar-label{ font-size:9.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted-2); padding:12px 4px 4px; text-align:center; }
+.SubMe-sidebar.hidden{ display:none; }
+#SubMeApp[data-view="watch"] .SubMe-sidebar,
+#SubMeApp[data-view="playlist"] .SubMe-sidebar{ display:none; }
+
+
+.SubMe-bottomnav{
+  display:none; position:fixed; left:0; right:0; bottom:0; z-index:45;
+  align-items:stretch; justify-content:space-around; gap:2px;
+
+  background:var(--surface); border-top:1px solid var(--border);
+  transition:transform .25s ease;
+}
+.SubMe-bottomnav a, .SubMe-bottomnav button{
+  display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center;
+  min-width:0; height:65px; padding-bottom:20px;
+  background:none; border:none; color:var(--muted);
+  font-family:var(--font-body); font-size:9.5px; font-weight:600; letter-spacing:-0.03em;
+  transition:background .15s, color .15s;
+}
+.SubMe-bottomnav a svg, .SubMe-bottomnav button svg{ width:19px; height:19px; color:inherit; }
+.SubMe-bottomnav a.active, .SubMe-bottomnav button.active{ background:var(--surface-3); color:var(--accent); }
+.SubMe-bottomnav.SubMe-bottomnav-hidden{ transform:translateY(100%); }
+@media (max-width:767px) and (orientation:portrait){
+  .SubMe-bottomnav{ display:flex; }
+  .SubMe-content{ padding-bottom:62px; }
+}
+
+.SubMe-main{ padding:18px 16px 40px; }
+
+/* ---------- Grid video: 4 mốc responsive ---------- */
+.SubMe-grid{
+  display:grid; gap:20px 16px;
+  grid-template-columns:repeat(4,1fr);
+}
+@media (max-width:1439px){
+  .SubMe-grid{ grid-template-columns:repeat(3,1fr); }
+}
+@media (max-width:1023px){
+  .SubMe-grid{ grid-template-columns:repeat(2,1fr); }
+  .SubMe-sidebar{ display:none; }
+}
+@media (max-width:767px){
+  .SubMe-brand span.SubMe-brand-text{ display:none; }
+  .SubMe-main{ padding-left:0; padding-right:0; }
+  #SubMeApp .SubMe-thumb{ border-radius:0; }
+  .SubMe-history-head{ padding:0 14px; }
+}
+@media (max-width:767px) and (orientation:portrait){
+  .SubMe-grid{ grid-template-columns:repeat(1,1fr); gap:0; }
+  .SubMe-card{ padding-bottom:14px; }
+  .SubMe-thumb{ margin-bottom:10px; }
+  .SubMe-meta{ padding:0 14px 4px; }
+  #veoMenuBtn{ display:none; }
+  .SubMe-brand span.SubMe-brand-text{ display:inline; }
+  .SubMe-header-right button[aria-label='Tải lên']{ display:none; }
+  #veoAvatarBtn{ display:none; }
+  .SubMe-header{
+    flex-wrap:wrap; align-items:center; height:auto;
+    top:-10px; padding-bottom:10px;
+    row-gap:10px; column-gap:10px;
+  }
+  .SubMe-brand{ order:1; }
+  .SubMe-header-right{ order:2; margin-left:auto; }
+  .SubMe-search{ order:3; flex-basis:100%; max-width:none; margin:0; }
+}
+@media (max-width:767px) and (orientation:landscape){
+  .SubMe-grid{ grid-template-columns:repeat(2,1fr); gap:10px; padding:0 10px; }
+}
+
+/* ---------- Video card ---------- */
+.SubMe-card{ cursor:pointer; }
+/* Shimmer loading animation khi chưa có ảnh thumb */
+@keyframes SubMe-shimmer{
+  0%{ background-position:200% 0; }
+  100%{ background-position:-200% 0; }
+}
+.SubMe-thumb{
+  position:relative; width:100%; aspect-ratio:16/9; border-radius:var(--radius);
+  overflow:hidden; background:linear-gradient(135deg,var(--tc1,#3a3f4d),var(--tc2,#1b1e26));
+  margin-bottom:9px;
+}
+/* Ảnh thumb thật: phủ đè gradient nền, fade in khi load xong */
+.SubMe-thumb-img{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; display:block;
+  opacity:0; transition:opacity .25s ease;
+  z-index:1;
+}
+.SubMe-thumb-img.loaded{ opacity:1; }
+/* SVG icon play/spinner nằm trên gradient, ẩn khi ảnh đã load */
+.SubMe-thumb-placeholder{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  z-index:0;
+}
+.SubMe-thumb-placeholder svg{ width:36px; height:36px; opacity:.25; color:#fff; }
+.SubMe-thumb::after{
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(circle at 50% 50%, rgba(255,255,255,.06), transparent 60%);
+}
+.SubMe-thumb .SubMe-play{
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:44px; height:44px; border-radius:50%; background:rgba(0,0,0,.4);
+  display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .15s;
+  z-index:2; /* nằm trên ảnh thumb */
+}
+.SubMe-card:hover .SubMe-play{ opacity:1; }
+.SubMe-thumb .SubMe-play svg{ width:18px; height:18px; color:#fff; margin-left:2px; }
+.SubMe-badge-duration{
+  position:absolute; right:6px; bottom:6px; background:rgba(0,0,0,.78);
+  color:#fff; font-family:var(--font-title); font-size:11px; font-weight:700; padding:2px 6px; border-radius:4px;
+  z-index:2; /* nằm trên ảnh thumb */
+}
+.SubMe-badge-status{
+  position:absolute; right:6px; top:6px; font-family:var(--font-title); font-size:10.5px; font-weight:700;
+  padding:3px 7px; border-radius:5px; text-transform:uppercase; letter-spacing:.02em; color:#fff;
+  z-index:2; /* nằm trên ảnh thumb */
+}
+.SubMe-badge-status.live{ background:var(--live); color:#052e29; }
+.SubMe-badge-status.full{ background:var(--full); }
+.SubMe-meta{ display:flex; gap:9px; }
+.SubMe-ch-avatar-link{ display:block; flex-shrink:0; }
+.SubMe-ch-avatar{
+  width:34px; height:34px; border-radius:50%; flex-shrink:0; margin-top:1px;
+  background:linear-gradient(135deg,var(--cc1,#555),var(--cc2,#333));
+  display:flex; align-items:center; justify-content:center; font-family:var(--font-title); font-size:12px; font-weight:700;
+}
+.SubMe-info{ min-width:0; }
+.SubMe-title{
+  font-size:16px; font-weight:700; line-height:1.35; margin:0 0 4px;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.SubMe-channel{ font-size:12.5px; color:var(--muted); display:flex; align-items:center; gap:4px; margin-bottom:2px; }
+.SubMe-channel svg{ width:12px; height:12px; color:var(--live); }
+.SubMe-stats{ font-size:12px; color:var(--muted-2); }
+
+.SubMe-empty{ text-align:center; color:var(--muted); padding:60px 20px; font-size:14px; grid-column:1/-1; }
+
+/* ---------- Trang lịch sử xem ---------- */
+.SubMe-history-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+.SubMe-history-head h2{ font-family:var(--font-title); font-size:20px; font-weight:700; }
+.SubMe-history-clear{
+  flex-shrink:0; padding:7px 15px; border-radius:999px; font-size:13px; font-weight:600;
+  background:var(--surface); border:1px solid var(--border); color:var(--text);
+  font-family:var(--font-body); transition:.15s;
+}
+.SubMe-history-clear:hover{ background:var(--surface-2); }
+
+/* ---------- Trang kênh đăng ký ---------- */
+.SubMe-subs-section{ margin-bottom:34px; }
+.SubMe-subs-section:last-child{ margin-bottom:0; }
+.SubMe-subs-section h2{ font-family:var(--font-title); font-size:18px; font-weight:700; margin-bottom:14px; }
+.SubMe-sub-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:16px; }
+@media (max-width:1439px){ .SubMe-sub-grid{ grid-template-columns:repeat(4,1fr); } }
+@media (max-width:1023px){ .SubMe-sub-grid{ grid-template-columns:repeat(3,1fr); } }
+@media (max-width:640px){ .SubMe-sub-grid{ grid-template-columns:repeat(2,1fr); } }
+.SubMe-sub-card{
+  display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px;
+  padding:18px 10px; border-radius:var(--radius); border:1px solid var(--border); background:var(--surface);
+  cursor:pointer; transition:background .15s;
+}
+.SubMe-sub-card:hover{ background:var(--surface-2); }
+.SubMe-sub-card .SubMe-ch-avatar{ width:60px; height:60px; font-size:19px; }
+.SubMe-sub-card-name{
+  font-size:13.5px; font-weight:700; line-height:1.3; width:100%;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.SubMe-sub-card-count{ font-size:11.5px; color:var(--muted-2); }
+.SubMe-sub-card-own{ font-size:11px; color:var(--muted); font-weight:700; }
+.SubMe-sub-card .SubMe-subscribe-btn{ width:100%; padding:6px 0; font-size:12px; margin-top:2px; }
+.SubMe-sub-card .SubMe-subscribe-btn:disabled{ opacity:.55; cursor:default; }
+.SubMe-subs-more-btn{
+  display:block; margin:16px auto 0; padding:8px 22px; border-radius:999px; font-size:13px; font-weight:600;
+  background:var(--surface); border:1px solid var(--border); color:var(--text); font-family:var(--font-body); transition:.15s;
+}
+.SubMe-subs-more-btn:hover{ background:var(--surface-2); }
+@media (max-width:767px){ .SubMe-subs-section{ padding:0 14px; } }
+
+/* ---------- Ẩn / hiện các view theo router ---------- */
+.SubMe-view{ display:none; }
+.SubMe-view.active{ display:block; }
+
+/* ---------- Trang xem video (watch) ---------- */
+.SubMe-watch-wrap{ padding:16px; max-width:1600px; margin:0 auto; }
+.SubMe-watch-layout{ display:flex; gap:10px; align-items:flex-start; }
+.SubMe-watch-main{ flex:1; min-width:0; }
+.SubMe-player-wrap{
+  position:relative; width:100%; aspect-ratio:16/9; background:#000;
+  border-radius:var(--radius); overflow:hidden; margin-bottom:14px;
+}
+.SubMe-player-wrap iframe{ position:absolute; inset:0; width:100%; height:100%; border:none; }
+.SubMe-player-placeholder{
+  position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:10px; color:#fff; text-align:center; padding:20px; font-size:13px;
+}
+.SubMe-player-placeholder svg{ width:44px; height:44px; opacity:.7; }
+.SubMe-watch-title{ font-size:19px; font-weight:700; line-height:1.4; margin-bottom:10px; }
+.SubMe-watch-subrow{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--border); }
+.SubMe-watch-channel{ display:flex; align-items:center; gap:10px; }
+.SubMe-watch-channel .SubMe-ch-avatar{ width:42px; height:42px; font-size:15px; }
+.SubMe-watch-channel-name{ font-size:14px; font-weight:700; display:flex; align-items:center; gap:4px; }
+.SubMe-watch-channel-subs{ font-size:12px; color:var(--muted); }
+.SubMe-subscribe-btn{
+  background:var(--text); color:var(--bg); border:none; border-radius:20px;
+  padding:10px 18px; font-family:var(--font-title); font-weight:700; font-size:13px; flex-shrink:0;
+}
+.SubMe-watch-desc{ background:var(--surface); border-radius:var(--radius); padding:14px; font-size:13px; color:var(--muted); line-height:1.6; }
+
+/* ---------- Bình luận ---------- */
+.SubMe-comments{ margin-top:22px; }
+.SubMe-comments-title{ font-size:16px; font-weight:700; margin-bottom:14px; }
+.SubMe-comment-form-wrap{ margin-bottom:22px; }
+.SubMe-comment-form{ display:flex; flex-direction:column; gap:10px; }
+.SubMe-comment-form textarea{
+  width:100%; min-height:64px; max-height:220px; resize:vertical; border-radius:10px; padding:12px 14px;
+  background:var(--surface-2); border:1.5px solid var(--border); color:var(--text);
+  font-family:var(--font-body); font-size:13.5px; outline:none;
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+.SubMe-comment-form textarea:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(245,166,35,.18); }
+.SubMe-comment-form textarea::placeholder{ color:var(--muted-2); }
+.SubMe-comment-form-actions{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.SubMe-comment-counter{ font-size:11.5px; color:var(--muted-2); flex-shrink:0; }
+.SubMe-comment-counter.SubMe-comment-counter-warn{ color:var(--full); }
+.SubMe-comment-submit{ padding:0 22px; height:38px; margin-top:0; }
+.SubMe-comment-list{ display:flex; flex-direction:column; gap:16px; }
+.SubMe-comment-item{ display:flex; gap:10px; }
+.SubMe-comment-body{ min-width:0; flex:1; }
+.SubMe-comment-head{ display:flex; align-items:baseline; gap:8px; margin-bottom:3px; flex-wrap:wrap; }
+.SubMe-comment-author{ font-size:13px; font-weight:700; }
+.SubMe-comment-author:hover{ text-decoration:underline; }
+.SubMe-comment-time{ font-size:11.5px; color:var(--muted-2); }
+.SubMe-comment-text{ font-size:13.5px; color:var(--text); line-height:1.5; white-space:pre-wrap; word-break:break-word; margin:0; }
+.SubMe-comment-login-link{ color:var(--accent); font-weight:700; background:none; border:none; cursor:pointer; text-decoration:underline; font-family:inherit; font-size:inherit; padding:0; }
+
+.SubMe-comments-sort{ display:flex; justify-content:flex-end; margin-bottom:12px; }
+.SubMe-comments-sort .SubMe-select{ width:auto; }
+
+.SubMe-comment-actions-row{ display:flex; align-items:center; gap:6px; margin-top:6px; flex-wrap:wrap; }
+.SubMe-comment-like-btn, .SubMe-comment-reply-btn, .SubMe-comment-edit-btn, .SubMe-comment-delete-btn{
+  display:flex; align-items:center; gap:5px; background:none; border:none; padding:4px 8px; border-radius:14px;
+  font-family:var(--font-body); font-size:12px; font-weight:700; color:var(--muted-2); transition:background .15s ease, color .15s ease;
+}
+.SubMe-comment-like-btn:hover, .SubMe-comment-reply-btn:hover, .SubMe-comment-edit-btn:hover{ background:var(--surface-2); color:var(--text); }
+.SubMe-comment-like-btn svg{ width:15px; height:15px; flex-shrink:0; }
+.SubMe-comment-like-btn.liked{ color:var(--full); }
+.SubMe-comment-like-btn.liked svg{ fill:var(--full); stroke:var(--full); }
+.SubMe-comment-like-btn:disabled{ opacity:.6; cursor:default; }
+.SubMe-comment-delete-btn{ text-decoration:underline; }
+.SubMe-comment-delete-btn:hover{ color:var(--full); background:none; }
+.SubMe-comment-edited-tag{ font-size:11px; color:var(--muted-2); }
+
+.SubMe-comment-replies{ margin-top:10px; padding-left:18px; border-left:2px solid var(--border); display:flex; flex-direction:column; gap:14px; }
+.SubMe-comment-toggle-replies{
+  margin-top:8px; background:none; border:none; color:var(--accent); font-family:var(--font-body);
+  font-size:12.5px; font-weight:700; padding:4px 0; display:inline-flex; align-items:center; gap:4px;
+}
+.SubMe-comment-reply-form-wrap{ margin-top:10px; }
+.SubMe-comment-reply-form-wrap .SubMe-comment-form textarea{ min-height:48px; }
+
+.SubMe-comment-edit-form{ display:flex; flex-direction:column; gap:8px; margin:2px 0; }
+.SubMe-comment-edit-form textarea{
+  width:100%; min-height:56px; max-height:200px; resize:vertical; border-radius:10px; padding:10px 12px;
+  background:var(--surface-2); border:1.5px solid var(--accent); color:var(--text);
+  font-family:var(--font-body); font-size:13.5px; outline:none;
+}
+.SubMe-comment-edit-actions{ display:flex; align-items:center; justify-content:flex-end; gap:8px; }
+.SubMe-comment-edit-actions button{
+  padding:7px 16px; border-radius:8px; font-size:12px; font-weight:700; font-family:var(--font-body); border:none;
+}
+.SubMe-comment-edit-save{ background:var(--accent); color:var(--accent-ink); }
+.SubMe-comment-edit-save:disabled{ opacity:.65; cursor:default; }
+.SubMe-comment-edit-cancel{ background:var(--surface-2); color:var(--text); }
+.SubMe-comment-edit-cancel:hover{ background:var(--surface-3); }
+
+.SubMe-comment-loadmore{
+  display:block; margin:18px auto 0; background:var(--surface); border:1px solid var(--border); color:var(--text);
+  padding:9px 22px; border-radius:20px; font-family:var(--font-title); font-weight:700; font-size:12.5px;
+  transition:background .15s ease, border-color .15s ease;
+}
+.SubMe-comment-loadmore:hover{ background:var(--surface-2); border-color:var(--accent); }
+
+.SubMe-watch-side{ width:350px; flex-shrink:0; }
+.SubMe-playlist-panel{ background:var(--surface); border-radius:var(--radius); margin-bottom:12px; overflow:hidden; }
+.SubMe-playlist-panel-head{ padding:12px 14px; border-bottom:1px solid var(--border); }
+.SubMe-playlist-panel-head strong{ font-size:14px; display:block; margin-bottom:2px; }
+.SubMe-playlist-panel-head span{ font-size:12px; color:var(--muted); }
+.SubMe-related-list{ display:flex; flex-direction:column; gap:10px; }
+.SubMe-related-item{ display:flex; gap:8px; cursor:pointer; padding:6px; border-radius:8px; }
+.SubMe-related-item:hover{ background:var(--surface-2); }
+.SubMe-related-item.current{ background:var(--surface-3); }
+.SubMe-related-thumb{ position:relative; width:140px; flex-shrink:0; aspect-ratio:16/9; border-radius:8px; overflow:hidden; background:linear-gradient(135deg,var(--tc1,#3a3f4d),var(--tc2,#1b1e26)); }
+.SubMe-related-thumb .SubMe-thumb-img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; opacity:0; transition:opacity .25s; z-index:1; }
+.SubMe-related-thumb .SubMe-thumb-img.loaded{ opacity:1; }
+.SubMe-related-thumb .SubMe-thumb-placeholder{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:0; }
+.SubMe-related-thumb .SubMe-thumb-placeholder svg{ width:24px; height:24px; opacity:.2; color:#fff; }
+.SubMe-related-thumb .SubMe-badge-duration{ font-size:10px; padding:1px 4px; }
+.SubMe-related-index{ width:22px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--muted); font-weight:700; }
+.SubMe-related-info{ min-width:0; }
+.SubMe-related-title{ font-size:13px; font-weight:600; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:3px; }
+.SubMe-related-meta{ font-size:11.5px; color:var(--muted-2); }
+
+/* FIX: watch-layout ở PC dùng align-items:flex-start để side-panel không
+   bị kéo dãn theo chiều cao main. Trước đây khi xuống mobile/tablet chỉ đổi
+   flex-direction:column mà KHÔNG đổi lại align-items, nên ở chế độ cột,
+   flex-start lại áp cho chiều NGANG khiến tiêu đề/kênh/mô tả bị co hẹp lại
+   theo nội dung thay vì full-width (đây là nguyên nhân của cả 2 lỗi:
+   khoảng trống lớn ở iPhone X và "hiển thị 1 nửa" ở iPad khi xoay dọc).
+   Đổi align-items:stretch + width:100% để luôn full width khi ở dạng cột. */
+@media (max-width:1023px){
+  .SubMe-watch-layout{ flex-direction:column; align-items:stretch; }
+  .SubMe-watch-main{ width:100%; }
+  .SubMe-watch-side{ width:100%; }
+}
+@media (max-width:767px){
+  .SubMe-watch-wrap{ padding:0; }
+  .SubMe-player-wrap{ border-radius:0; }
+  .SubMe-watch-title, .SubMe-watch-subrow, .SubMe-watch-desc{ margin-left:14px; margin-right:14px; }
+  .SubMe-watch-side{ padding:0 14px; }
+  .SubMe-related-thumb, .SubMe-playlist-head .SubMe-thumb{ border-radius:0; }
+}
+@media (max-width:767px) and (orientation:portrait){
+  .SubMe-watch-side{ padding:0; }
+  .SubMe-playlist-panel{ background:none; margin-bottom:0; }
+  .SubMe-playlist-panel-head{ padding:14px; }
+  .SubMe-related-list, .SubMe-playlist-list{ gap:0; }
+  .SubMe-related-item, .SubMe-playlist-list .SubMe-related-item{
+    position:relative; flex-direction:column; align-items:stretch;
+    gap:0; padding:0; margin-bottom:18px; border-radius:0; background:none;
+  }
+  .SubMe-related-item:hover, .SubMe-related-item.current{ background:none; }
+  .SubMe-related-thumb, .SubMe-playlist-list .SubMe-related-thumb{
+    width:100%; border-radius:0; margin-bottom:9px;
+  }
+  .SubMe-related-index{
+    position:absolute; top:6px; left:6px; width:auto; height:auto;
+    background:rgba(0,0,0,.78); color:#fff; font-size:11px; font-weight:700;
+    padding:2px 7px; border-radius:4px; z-index:2; justify-content:flex-start;
+  }
+  .SubMe-related-info{ padding:0 14px; }
+  .SubMe-related-title{ font-size:16px; }
+  .SubMe-related-meta{ font-size:12.5px; }
+}
+
+/* ---------- Shorts (video ngắn / video dọc) ---------- */
+.SubMe-shorts-head{ display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+.SubMe-shorts-head h2{ font-size:20px; font-weight:700; }
+.SubMe-shorts-head svg{ width:24px; height:24px; color:var(--accent); }
+/* Số video / hàng: PC lớn 5 → PC nhỏ & iPad ngang 4 → iPad dọc & mobile ngang 3 → mobile dọc 2 */
+.SubMe-shorts-grid{ display:grid; gap:22px 14px; grid-template-columns:repeat(5,1fr); }
+@media (max-width:1599px){ .SubMe-shorts-grid{ grid-template-columns:repeat(4,1fr); } }
+@media (max-width:1023px){ .SubMe-shorts-grid{ grid-template-columns:repeat(3,1fr); } }
+@media (min-width:1024px) and (max-width:1100px) and (orientation:portrait){ .SubMe-shorts-grid{ grid-template-columns:repeat(3,1fr); } }
+@media (max-width:767px){ .SubMe-shorts-grid{ grid-template-columns:repeat(2,1fr); gap:16px 8px; padding:0 10px; } .SubMe-shorts-head{ padding:0 14px; } }
+@media (max-width:767px) and (orientation:landscape){ .SubMe-shorts-grid{ grid-template-columns:repeat(3,1fr); } }
+.SubMe-short-card{ cursor:pointer; min-width:0; }
+.SubMe-short-thumb{
+  position:relative; width:100%; aspect-ratio:9/16; border-radius:var(--radius); overflow:hidden;
+  background:linear-gradient(135deg,var(--tc1,#3a3f4d),var(--tc2,#1b1e26)); margin-bottom:8px;
+}
+.SubMe-short-thumb::after{ content:''; position:absolute; inset:0; z-index:1; pointer-events:none; background:linear-gradient(to top, rgba(0,0,0,.55), transparent 35%); }
+.SubMe-short-views{ position:absolute; left:8px; bottom:8px; z-index:2; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; gap:4px; }
+.SubMe-short-views svg{ width:12px; height:12px; }
+.SubMe-short-line{ font-size:13.5px; font-weight:600; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.SubMe-short-meta{ font-size:12px; color:var(--muted-2); margin-top:3px; }
+.SubMe-related-short .SubMe-related-thumb{ width:84px; aspect-ratio:9/16; }
+
+/* Khung player dạng dọc (9:16) trên desktop / tablet / mobile ngang */
+#SubMeApp[data-short="1"] .SubMe-player-wrap{
+  aspect-ratio:9/16; width:auto; height:min(78vh,780px); max-width:100%; margin:0 auto 14px;
+}
+@media (max-width:1023px){ #SubMeApp[data-short="1"] .SubMe-player-wrap{ height:min(70vh,640px); } }
+
+/* Lớp giao diện Shorts (nút + thông tin) — chỉ dùng ở mobile dọc */
+.SubMe-short-ui{ display:none; }
+/* Shorts: bỏ thông báo Play / Pause ở góc trên trái của ArtPlayer */
+#SubMeApp[data-short="1"] .art-notice{ display:none !important; }
+/* Đang chuyển Short: ẩn icon tạm dừng / chờ giữa màn hình để không bị nháy */
+#SubMeApp[data-short-switching="1"] .art-state,
+#SubMeApp[data-short-switching="1"] .art-mask{ display:none !important; }
+.SubMe-short-cmt-close{ display:none; }
+
+/* ===== MOBILE DỌC: Shorts full màn hình ===== */
+@media (max-width:767px) and (orientation:portrait){
+  #SubMeApp[data-short="1"] #veoWatchView{ position:fixed; top:0; left:0; right:0; bottom:65px; z-index:60; background:#000; overflow:hidden; }
+  #SubMeApp[data-short="1"] .SubMe-watch-wrap,
+  #SubMeApp[data-short="1"] .SubMe-watch-layout,
+  #SubMeApp[data-short="1"] .SubMe-watch-main{ height:100%; padding:0; margin:0; }
+  #SubMeApp[data-short="1"] .SubMe-player-wrap{
+    position:absolute; inset:0; width:100%; height:100%; aspect-ratio:auto; max-width:none; margin:0; border-radius:0;
+  }
+  #SubMeApp[data-short="1"] .SubMe-watch-title,
+  #SubMeApp[data-short="1"] .SubMe-watch-subrow,
+  #SubMeApp[data-short="1"] .SubMe-watch-desc,
+  #SubMeApp[data-short="1"] .SubMe-watch-side{ display:none; }
+
+  /* FIX: ArtPlayer có z-index:20 → lớp nút/mô tả phải cao hơn (30) mới không bị video che mất */
+  #SubMeApp[data-short="1"] .SubMe-short-ui{ display:block; position:absolute; inset:0; z-index:64; pointer-events:none; color:#fff; }
+  /* Chế độ Shorts trên mobile dọc: ẩn header + footer, xem full màn hình */
+  #SubMeApp[data-short="1"] .SubMe-header{ display:none !important; }
+  #SubMeApp[data-short="1"] .SubMe-bottomnav{ transform:none !important; }
+  /* Ẩn thanh điều khiển ArtPlayer (chạm vào video để phát / tạm dừng), tránh đè lên nút */
+  #SubMeApp[data-short="1"] .art-bottom{ display:none !important; }
+  #SubMeApp[data-short="1"] #veoWatchView{ touch-action:none; overscroll-behavior:contain; }
+  @keyframes SubMe-short-in-up{ from{ transform:translateY(70px); opacity:.15; } to{ transform:none; opacity:1; } }
+  @keyframes SubMe-short-in-down{ from{ transform:translateY(-70px); opacity:.15; } to{ transform:none; opacity:1; } }
+  #veoWatchView[data-swipe="up"] .SubMe-player-wrap{ animation:SubMe-short-in-up .28s ease-out; }
+  #veoWatchView[data-swipe="down"] .SubMe-player-wrap{ animation:SubMe-short-in-down .28s ease-out; }
+  /* Thanh progress: sát đáy khung video, ngay phía trên footer */
+  .SubMe-short-progress{ position:absolute; left:0; right:0; bottom:0; height:16px; display:flex; align-items:flex-end; }
+  .SubMe-short-progress .track{ width:100%; height:3px; background:rgba(255,255,255,.3); }
+  .SubMe-short-progress .bar{ height:100%; width:0; background:var(--accent); }
+  .SubMe-short-ui > *{ pointer-events:auto; }
+  /* Nút âm thanh + chất lượng ở góc trên phải */
+  .SubMe-short-top{ position:absolute; top:calc(env(safe-area-inset-top, 0px) + 12px); right:10px; display:flex; align-items:center; gap:8px; }
+  .SubMe-short-topbtn{
+    height:38px; min-width:38px; padding:0 12px; border-radius:19px; background:rgba(0,0,0,.5); color:#fff; border:none;
+    display:flex; align-items:center; justify-content:center; font-family:var(--font-body); font-size:12.5px; font-weight:700;
+  }
+  .SubMe-short-topbtn svg{ width:20px; height:20px; }
+  .SubMe-short-qmenu{
+    display:none; position:absolute; top:calc(env(safe-area-inset-top, 0px) + 58px); right:10px; min-width:112px;
+    background:rgba(20,20,24,.95); border-radius:12px; padding:6px;
+  }
+  .SubMe-short-qmenu.open{ display:block; }
+  .SubMe-short-qmenu button{ display:block; width:100%; text-align:left; padding:10px 12px; background:none; border:none; color:#fff; font-size:13.5px; font-weight:600; border-radius:8px; font-family:var(--font-body); }
+  .SubMe-short-qmenu button.active{ color:var(--accent); background:rgba(255,255,255,.08); }
+  .SubMe-short-actions{
+    position:absolute; right:8px; bottom:28px;
+    display:flex; flex-direction:column; align-items:center; gap:18px;
+  }
+  .SubMe-short-act{
+    display:flex; flex-direction:column; align-items:center; gap:4px; background:none; border:none; color:#fff;
+    font-family:var(--font-body); font-size:11.5px; font-weight:700; text-shadow:0 1px 3px rgba(0,0,0,.6);
+  }
+  .SubMe-short-act .ic{
+    width:46px; height:46px; border-radius:50%; background:rgba(0,0,0,.45);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .SubMe-short-act svg{ width:24px; height:24px; }
+  .SubMe-short-act.liked .ic{ background:var(--accent); }
+  .SubMe-short-act.liked svg{ fill:currentColor; }
+  .SubMe-short-act.subbed .ic{ background:var(--accent); }
+  .SubMe-short-info{
+    position:absolute; left:14px; right:76px; bottom:26px;
+    text-shadow:0 1px 4px rgba(0,0,0,.7);
+  }
+  .SubMe-short-ch{ font-size:14px; font-weight:700; margin-bottom:6px; }
+  .SubMe-short-vtitle{ font-size:15px; font-weight:700; line-height:1.35; margin-bottom:4px; }
+  .SubMe-short-vdesc{ font-size:13px; line-height:1.45; opacity:.92; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .SubMe-short-vdesc.expanded{ -webkit-line-clamp:unset; display:block; max-height:30vh; overflow-y:auto; }
+
+  /* Bình luận: bottom-sheet bật lên khi bấm nút bình luận */
+  .SubMe-short-cmt-backdrop{ display:none; position:fixed; inset:0; z-index:65; background:rgba(0,0,0,.5); }
+  #SubMeApp[data-short-cmt="1"] .SubMe-short-cmt-backdrop{ display:block; }
+  #SubMeApp[data-short="1"] #veoComments{
+    position:fixed; left:0; right:0; bottom:0; height:68vh; margin:0; padding:50px 14px calc(20px + env(safe-area-inset-bottom, 0px));
+    background:var(--surface); color:var(--text); border-radius:16px 16px 0 0; overflow-y:auto; z-index:70;
+    transform:translateY(105%); transition:transform .25s ease;
+  }
+  #SubMeApp[data-short="1"][data-short-cmt="1"] #veoComments{ transform:none; }
+  #SubMeApp[data-short="1"] .SubMe-short-cmt-close{
+    display:flex; position:absolute; top:8px; right:10px; width:36px; height:36px; align-items:center; justify-content:center;
+    background:var(--surface-2); color:var(--text); border:none; border-radius:50%; font-size:22px; line-height:1;
+  }
+}
+
+/* ===== PC (>=1024px): trang xem Short 3 cột — [thông tin] [player] [nav] [bình luận + hành động] ===== */
+.SubMe-short-nav, .SubMe-short-dbar{ display:none; }
+@media (min-width:1024px){
+  /* Vẫn hiện sidebar khi xem Short */
+  #SubMeApp[data-view="watch"][data-short="1"] .SubMe-sidebar{ display:block; }
+  /* Không cuộn trang: view Short vừa khít khung nội dung (= toàn màn hình trừ header) */
+  #SubMeApp[data-short="1"] .SubMe-content{ overflow:hidden; }
+  #SubMeApp[data-short="1"] #veoWatchView.active{
+    display:grid; height:100%; overflow:hidden; background:var(--bg);
+    grid-template-columns:minmax(150px,380px) calc((100vh - 60px) * 9 / 16) 56px minmax(240px,420px);
+    grid-template-rows:minmax(0,1fr) auto;
+    column-gap:16px; justify-content:center; padding:0 16px;
+  }
+  /* Gỡ các khung bọc để các phần tử con trở thành ô lưới trực tiếp */
+  #SubMeApp[data-short="1"] #veoWatchView .SubMe-watch-wrap,
+  #SubMeApp[data-short="1"] #veoWatchView .SubMe-watch-layout,
+  #SubMeApp[data-short="1"] #veoWatchView .SubMe-watch-main{ display:contents; }
+  /* Bỏ video liên quan */
+  #SubMeApp[data-short="1"] #veoWatchView .SubMe-watch-side{ display:none; }
+  /* Trái: tên video, kênh, theo dõi, mô tả */
+  #SubMeApp[data-short="1"] #veoWatchInfo{ grid-column:1; grid-row:1 / 3; min-height:0; overflow-y:auto; padding:22px 4px 22px 0; scrollbar-width:thin; }
+  /* Giữa: player full chiều cao */
+  #SubMeApp[data-short="1"] #veoWatchView .SubMe-player-wrap{
+    grid-column:2; grid-row:1 / 3; width:100%; height:100%; max-width:none; aspect-ratio:auto; margin:0; border-radius:0;
+  }
+  /* Nút lên / xuống */
+  #SubMeApp[data-short="1"] .SubMe-short-nav{ display:flex; flex-direction:column; gap:12px; grid-column:3; grid-row:1 / 3; align-self:center; justify-self:center; }
+  .SubMe-short-navbtn{
+    width:44px; height:44px; border-radius:50%; border:none; background:var(--surface-2); color:var(--text);
+    display:flex; align-items:center; justify-content:center; transition:background .15s;
+  }
+  .SubMe-short-navbtn:hover{ background:var(--surface-3); }
+  .SubMe-short-navbtn svg{ width:22px; height:22px; }
+  /* Phải trên: bình luận (tự cuộn trong khung) */
+  #SubMeApp[data-short="1"] #veoComments{
+    grid-column:4; grid-row:1; min-height:0; overflow-y:auto; margin:14px 0 0; padding:16px;
+    background:var(--surface); border-radius:var(--radius); scrollbar-width:thin;
+  }
+  /* Phải dưới: thích, chia sẻ... */
+  #SubMeApp[data-short="1"] .SubMe-short-dbar{ display:flex; flex-wrap:wrap; gap:8px; grid-column:4; grid-row:2; padding:12px 0 16px; }
+  .SubMe-short-dact{
+    display:flex; align-items:center; gap:8px; padding:10px 16px; border-radius:999px; border:none;
+    background:var(--surface-2); color:var(--text); font-family:var(--font-body); font-size:13px; font-weight:700; transition:background .15s;
+  }
+  .SubMe-short-dact:hover{ background:var(--surface-3); }
+  .SubMe-short-dact svg{ width:18px; height:18px; }
+  .SubMe-short-dact.liked{ background:var(--accent); color:var(--accent-ink); }
+  .SubMe-short-dact.liked svg{ fill:currentColor; }
+  @keyframes SubMe-pc-in-up{ from{ transform:translateY(40px); opacity:.2; } to{ transform:none; opacity:1; } }
+  @keyframes SubMe-pc-in-down{ from{ transform:translateY(-40px); opacity:.2; } to{ transform:none; opacity:1; } }
+  #SubMeApp[data-short="1"] #veoWatchView[data-swipe="up"] .SubMe-player-wrap{ animation:SubMe-pc-in-up .25s ease-out; }
+  #SubMeApp[data-short="1"] #veoWatchView[data-swipe="down"] .SubMe-player-wrap{ animation:SubMe-pc-in-down .25s ease-out; }
+}
+
+/* ---------- Trang kênh (channel) ---------- */
+.SubMe-channel-wrap{ max-width:1200px; }
+.SubMe-channel-banner{ width:100%; height:190px; background:linear-gradient(120deg,var(--cc1,#333),var(--cc2,#111)); }
+.SubMe-channel-head{ display:flex; gap:18px; align-items:flex-end; padding:10px 20px; }
+.SubMe-channel-head .SubMe-ch-avatar{ width:100px; height:100px; font-size:30px; border:4px solid var(--bg); }
+.SubMe-channel-headinfo{ padding-bottom:10px; }
+.SubMe-channel-name{ font-size:22px; font-weight:700; display:flex; align-items:center; gap:6px; }
+.SubMe-channel-sub{ font-size:12.5px; color:var(--muted); margin-top:4px; }
+.SubMe-channel-actions{ padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; }
+.SubMe-channel-videos{ padding:18px 20px; }
+.SubMe-channel-me{
+  padding:64px 24px 36px; text-align:center;
+  background:radial-gradient(120% 140% at 50% -10%, var(--surface-2) 0%, transparent 60%);
+}
+.SubMe-channel-me .SubMe-ch-avatar{
+  width:100px; height:100px; font-size:34px; margin:0 auto 16px;
+  box-shadow:0 0 0 4px var(--bg), 0 0 0 6px var(--border), 0 14px 28px -10px rgba(0,0,0,.4);
+}
+.SubMe-channel-me img{ border-radius:50%; }
+.SubMe-channel-sub{ font-size:12.5px; color:var(--muted); margin-top:4px; letter-spacing:.01em; }
+.SubMe-logout-btn{
+  display:inline-flex; align-items:center; gap:7px; margin-top:18px;
+  background:var(--surface); border:1px solid var(--border); color:var(--full); border-radius:999px;
+  padding:10px 20px; font-family:var(--font-title); font-weight:700; font-size:12.5px; letter-spacing:.01em;
+  transition:background .15s ease, border-color .15s ease, transform .1s ease;
+}
+.SubMe-logout-btn:hover{ background:rgba(225,91,91,.1); border-color:var(--full); }
+.SubMe-logout-btn:active{ transform:scale(.96); }
+
+.SubMe-mychannels-section{ padding:8px 24px 44px; max-width:1200px; margin:0 auto; }
+.SubMe-mychannels-section h3{
+  font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:18px; padding-bottom:12px; border-bottom:1px solid var(--border);
+}
+.SubMe-mychannel-card{
+  position:relative; background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  padding:26px 16px 18px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px;
+  cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,.16);
+  transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.SubMe-mychannel-card:hover{
+  transform:translateY(-4px); border-color:var(--accent); box-shadow:0 18px 34px -18px rgba(0,0,0,.5);
+}
+.SubMe-mychannel-card.active{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+.SubMe-mychannel-card .SubMe-ch-avatar{
+  width:64px; height:64px; font-size:22px;
+  box-shadow:0 0 0 3px var(--surface), 0 0 0 4px var(--border);
+  transition:box-shadow .18s ease;
+}
+.SubMe-mychannel-card:hover .SubMe-ch-avatar{ box-shadow:0 0 0 3px var(--surface), 0 0 0 4px var(--accent); }
+.SubMe-mychannel-card-name{
+  font-size:14px; font-weight:700; line-height:1.35; word-break:break-word; padding:0 4px;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.SubMe-mychannel-card-active-tag{ color:var(--accent); font-size:11px; font-weight:700; }
+.SubMe-mychannel-card-actions{ display:flex; gap:6px; margin-top:2px; flex-wrap:wrap; justify-content:center; }
+.SubMe-mychannel-card-actions button{
+  display:inline-flex; align-items:center; gap:5px;
+  font-size:11.5px; font-weight:700; padding:7px 13px; border-radius:999px; border:1px solid var(--border);
+  background:var(--surface-2); color:var(--muted); font-family:var(--font-body); transition:.15s ease;
+}
+.SubMe-mychannel-card-actions button svg{ width:12px; height:12px; flex-shrink:0; }
+.SubMe-mychannel-card-actions button:hover{ background:var(--surface-3); color:var(--text); border-color:var(--accent); }
+.SubMe-create-channel-card{
+  border:1.5px dashed var(--border); background:var(--surface); display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:12px; border-radius:14px;
+  padding:16px; min-height:172px; color:var(--muted); font-family:var(--font-body); font-size:13.5px; font-weight:700;
+  transition:border-color .18s ease, color .18s ease, background .18s ease, transform .18s ease;
+}
+.SubMe-create-channel-card svg{
+  width:24px; height:24px; padding:11px; border-radius:50%; background:var(--surface-2);
+  box-sizing:content-box; color:var(--muted); transition:.18s ease;
+}
+.SubMe-create-channel-card:hover{
+  background:var(--surface-2); color:var(--accent); border-color:var(--accent); transform:translateY(-4px);
+}
+.SubMe-create-channel-card:hover svg{ background:var(--accent); color:var(--accent-ink); }
+
+/* ---------- Trang playlist ---------- */
+.SubMe-playlist-wrap{ max-width:900px; margin:0 auto; padding:20px 16px; }
+.SubMe-playlist-head{ display:flex; gap:16px; margin-bottom:18px; }
+.SubMe-playlist-head .SubMe-thumb{ width:220px; flex-shrink:0; margin-bottom:0; }
+.SubMe-playlist-headinfo{ display:flex; flex-direction:column; justify-content:center; gap:6px; }
+.SubMe-playlist-headinfo h1{ font-size:20px; }
+.SubMe-playlist-headinfo span{ font-size:12.5px; color:var(--muted); }
+.SubMe-playlist-list{ display:flex; flex-direction:column; gap:4px; }
+.SubMe-playlist-list .SubMe-related-item{ padding:8px; }
+.SubMe-playlist-list .SubMe-related-thumb{ width:160px; }
+@media (max-width:600px){
+  .SubMe-playlist-head{ flex-direction:column; }
+  .SubMe-playlist-head .SubMe-thumb{ width:100%; }
+  .SubMe-playlist-list .SubMe-related-thumb{ width:110px; }
+}
+
+/* ---------- Modal đăng ký / đăng nhập / tạo kênh / bộ lọc ---------- */
+.SubMe-modal-overlay{
+  position:fixed; inset:0; background:rgba(6,7,10,.72); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+  z-index:100; display:none; align-items:center; justify-content:center; padding:20px;
+}
+.SubMe-modal-overlay.open{ display:flex; animation:SubMe-fade-in .15s ease; }
+.SubMe-modal{
+  background:var(--surface); border:1px solid var(--border); border-radius:18px;
+  padding:30px 26px 26px; width:100%; max-width:368px; position:relative;
+  box-shadow:0 28px 64px -20px rgba(0,0,0,.55);
+  animation:SubMe-modal-in .22s cubic-bezier(.2,.9,.3,1.2);
+}
+@keyframes SubMe-fade-in{ from{ opacity:0; } to{ opacity:1; } }
+@keyframes SubMe-modal-in{ from{ opacity:0; transform:translateY(12px) scale(.97); } to{ opacity:1; transform:translateY(0) scale(1); } }
+.SubMe-modal-close{
+  position:absolute; top:12px; right:12px; width:32px; height:32px; border-radius:50%;
+  background:var(--surface-2); border:none; color:var(--muted); font-size:18px; line-height:1;
+  transition:background .15s ease, color .15s ease, transform .2s ease;
+}
+.SubMe-modal-close:hover{ background:var(--surface-3); color:var(--text); transform:rotate(90deg); }
+.SubMe-modal h3{ font-size:18px; font-weight:700; margin-bottom:20px; text-align:center; letter-spacing:-.01em; }
+.SubMe-auth-tabs{ display:flex; background:var(--surface-2); border-radius:12px; padding:4px; margin-bottom:20px; }
+.SubMe-auth-tab{
+  flex:1; text-align:center; padding:10px 0; border-radius:9px; background:none; border:none;
+  color:var(--muted); font-family:var(--font-body); font-weight:700; font-size:13px; transition:background .15s ease, color .15s ease;
+}
+.SubMe-auth-tab.active{ background:var(--accent); color:var(--accent-ink); box-shadow:0 4px 10px -4px rgba(0,0,0,.4); }
+.SubMe-auth-form, .SubMe-modal-form{ display:none; flex-direction:column; gap:12px; }
+.SubMe-auth-form.active{ display:flex; }
+.SubMe-modal-form{ display:flex; }
+.SubMe-auth-form input, .SubMe-modal-form input{
+  width:100%; height:44px; border-radius:10px; padding:0 15px;
+  background:var(--surface-2); border:1.5px solid var(--border); color:var(--text);
+  font-family:var(--font-body); font-size:13.5px; outline:none;
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+.SubMe-auth-form input:focus, .SubMe-modal-form input:focus{
+  border-color:var(--accent); box-shadow:0 0 0 3px rgba(245,166,35,.18);
+}
+.SubMe-auth-form input::placeholder, .SubMe-modal-form input::placeholder{ color:var(--muted-2); }
+.SubMe-auth-submit{
+  height:46px; border-radius:10px; background:var(--accent); color:var(--accent-ink); border:none;
+  font-family:var(--font-title); font-weight:700; font-size:14px; letter-spacing:.01em; margin-top:6px;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  transition:filter .15s ease, transform .1s ease;
+}
+.SubMe-auth-submit:hover{ filter:brightness(1.07); }
+.SubMe-auth-submit:active{ transform:scale(.98); }
+.SubMe-auth-submit:disabled{ opacity:.65; cursor:default; filter:none; transform:none; }
+.SubMe-spinner{
+  width:16px; height:16px; border-radius:50%; border:2px solid rgba(0,0,0,.25); border-top-color:var(--accent-ink);
+  animation:SubMe-spin .7s linear infinite; display:none; flex-shrink:0;
+}
+.SubMe-auth-submit.loading .SubMe-spinner{ display:inline-block; }
+.SubMe-auth-submit.loading .SubMe-auth-submit-label{ opacity:.85; }
+@keyframes SubMe-spin{ to{ transform:rotate(360deg); } }
+.SubMe-auth-note{ font-size:12.5px; color:var(--muted); text-align:center; margin-top:14px; min-height:16px; }
+.SubMe-auth-note.error{ color:var(--full); }
+.SubMe-auth-note.success{ color:var(--live); }
+
+/* ---------- Modal bộ lọc (áp dụng realtime, tách riêng khỏi tìm kiếm) ---------- */
+.SubMe-filter-modal-pills{ flex-wrap:wrap; overflow:visible; margin-bottom:16px; }
+.SubMe-filter-modal-selects{ flex-direction:column; overflow:visible; }
+.SubMe-filter-modal-selects .SubMe-select{ width:100%; }
